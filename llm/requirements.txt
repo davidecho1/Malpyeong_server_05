@@ -1,0 +1,5 @@
+vllm[serve]
+fastapi
+uvicorn
+psycopg2-binary
+huggingface_hub
