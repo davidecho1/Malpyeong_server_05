@@ -1,4 +1,10 @@
-#!/usr/bin/env python3
+import os, sys
+
+# ──────────────────────────────────────────────────────────────
+# llm/ 폴더를 Python 모듈 검색 경로에 최우선으로 추가
+sys.path.insert(0, os.path.join(os.getcwd(), "llm"))
+# ──────────────────────────────────────────────────────────────
+
 import uvicorn
 import logging
 from AI_API import app
