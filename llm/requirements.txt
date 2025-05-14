@@ -1,4 +1,4 @@
-vllm[serve]
+vllm
 fastapi
 uvicorn
 psycopg2-binary
