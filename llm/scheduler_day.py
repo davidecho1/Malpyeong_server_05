@@ -20,15 +20,9 @@ if not os.path.isdir(SCRIPT_DIR):
     logging.error("SCRIPT_DIR가 존재하지 않습니다: %s", SCRIPT_DIR)
 sys.path.insert(0, SCRIPT_DIR)
 
-# 스케줄 모델 조회 함수
-try:
-    from get_schedule_models import get_today_models, get_tomorrow_models
-except ImportError:
-    logging.warning("get_schedule_models 모듈을 찾을 수 없습니다: %s", SCRIPT_DIR)
-    def get_today_models(): return []
-    def get_tomorrow_models(): return []
+from get_schedule_models import get_today_models, get_tomorrow_models
 
-# 스위치 스크립트 경로
+# switch script 경로
 SWITCH_SCRIPT = os.path.join(SCRIPT_DIR, "switch_models_and_ports.sh")
 
 
@@ -47,7 +41,7 @@ def run_switch_script():
 
 def scheduler_loop():
     """
-    매일 자정에 run_switch_script 호출
+    매일 자정(run at midnight)에 run_switch_script 호출
     """
     while True:
         now = datetime.datetime.now()
@@ -59,21 +53,26 @@ def scheduler_loop():
         run_switch_script()
 
 
-def start_scheduler():
+def start_scheduler(gpu_port_map, csv_config_path):
     """
-    시작 시 스케줄 정보 로깅, 초기 스위치 실행,
-    그 후 데몬 스레드에서 매일 자정 스위칭 반복
+    gpu_port_map: {gpu_id: port}, (start_scheduler가 main.py에서 전달되는 매핑)
+    csv_config_path: CSV 스케줄 파일 경로 (start_scheduler가 main.py에서 전달)
+
+    초기 스위치 실행 후 백그라운드 스레드로 매일 자정 스위칭 수행
     """
-    # 오늘/내일 모델 로깅
+    # 전달받은 매개변수 로깅
+    logging.info("start_scheduler 호출: GPU_PORT_MAP=%s, CSV_PATH=%s", gpu_port_map, csv_config_path)
+
+    # 오늘/내일 모델 정보 로깅 (get_schedule_models 사용)
     try:
-        today = get_today_models()
+        today = get_today_models(csv_path=csv_config_path) if 'get_today_models' in globals() else []
         logging.info("오늘 모델: %s", today)
-        tomorrow = get_tomorrow_models()
+        tomorrow = get_tomorrow_models(csv_path=csv_config_path) if 'get_tomorrow_models' in globals() else []
         logging.info("내일 모델: %s", tomorrow)
     except Exception as e:
         logging.warning("스케줄 모델 조회 중 오류: %s", e)
 
-    # 초기 스위치 한 번 수행
+    # 초기 switch 실행
     run_switch_script()
 
     # 백그라운드 스레드 시작
@@ -84,8 +83,10 @@ def start_scheduler():
 
 if __name__ == '__main__':
     logging.info("스케줄러 시작 (스크립트 디렉토리: %s)", SCRIPT_DIR)
-    start_scheduler()
-    # 메인 스레드 대기
+    # 기본 매핑과 CSV 경로
+    default_map = {0:5021,1:5022,2:5023,3:5024}
+    default_csv = os.environ.get("SCHEDULE_CSV", os.path.normpath(os.path.join(BASE_DIR, "..", "schedule", "schedule(day).csv")))
+    start_scheduler(default_map, default_csv)
     try:
         while True:
             time.sleep(3600)
