@@ -7,20 +7,21 @@ import threading
 import subprocess
 import logging
 
-# 스크립트 및 스케줄러 모듈 위치 (컨테이너 경로 기준)
-SCRIPT_DIR = os.environ.get("SCRIPT_DIR", "/app/scripts")
-if SCRIPT_DIR not in sys.path:
-    sys.path.insert(0, SCRIPT_DIR)
-
-from get_schedule_models import get_today_models, get_tomorrow_models
-
 # 로깅 설정 (LOG_LEVEL 환경변수로 조정 가능)
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
     format='[%(levelname)s] %(message)s'
 )
 
-# switch script 경로
+# 스크립트 및 스케줄러 모듈 위치 (컨테이너에서 마운트된 경로 기준)
+SCRIPT_DIR = os.environ.get("SCRIPT_DIR", "/app/scripts")
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+
+# 스케줄 모델 조회 함수 임포트
+from get_schedule_models import get_today_models, get_tomorrow_models
+
+# 스위치 스크립트 경로
 SWITCH_SCRIPT = os.path.join(SCRIPT_DIR, "switch_models_and_ports.sh")
 
 
@@ -55,8 +56,14 @@ def start_scheduler():
     """
     초기 스위치 실행 후 데몬 스레드로 매일 자정 자동 스위칭 시작
     """
-    # 초기 실행
+    # 현재 스케줄 확인 및 초기 실행
+    try:
+        today_models = get_today_models()
+        logging.info("오늘 모델 목록: %s", today_models)
+    except Exception as e:
+        logging.warning("오늘 모델 조회 실패: %s", e)
     run_switch_script()
+
     # 백그라운드 스레드에서 일정 반복
     thread = threading.Thread(target=scheduler_loop, daemon=True)
     thread.start()
@@ -71,7 +78,6 @@ if __name__ == '__main__':
     )
     start_scheduler()
     try:
-        # 메인 스레드 유지
         while True:
             time.sleep(3600)
     except KeyboardInterrupt:
