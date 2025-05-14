@@ -1,10 +1,13 @@
 version: "2.4"
 
 services:
+  # ───────────────────────────────
+  # 1) API + 스케줄러 (호스트 5020)
+  # ───────────────────────────────
   api:
     build:
-      context: .                
-      dockerfile: Dockerfile   
+      context: .            # 프로젝트 루트의 Dockerfile 사용
+      dockerfile: Dockerfile
     container_name: malpyeong_api
     volumes:
       - ./scripts:/app/scripts
@@ -17,8 +20,13 @@ services:
       - "5020:5020"
     command: python api_main.py
 
+  # ───────────────────────────────
+  # 2) vLLM 추론 컨테이너 4대 (5021~5024)
+  # ───────────────────────────────
   llm0:
-    build: ./llm
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: llm0
     devices:
       - /dev/nvidia0:/dev/nvidia0
@@ -33,10 +41,12 @@ services:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
       - "5021:5021"
-    command: python serve_main.py
+    command: python llm/serve_main.py
 
   llm1:
-    build: ./llm
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: llm1
     devices:
       - /dev/nvidia1:/dev/nvidia1
@@ -51,10 +61,12 @@ services:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
       - "5022:5022"
-    command: python serve_main.py
+    command: python llm/serve_main.py
 
   llm2:
-    build: ./llm
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: llm2
     devices:
       - /dev/nvidia2:/dev/nvidia2
@@ -69,10 +81,12 @@ services:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
       - "5023:5023"
-    command: python serve_main.py
+    command: python llm/serve_main.py
 
   llm3:
-    build: ./llm
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: llm3
     devices:
       - /dev/nvidia3:/dev/nvidia3
@@ -87,4 +101,4 @@ services:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
       - "5024:5024"
-    command: python serve_main.py
+    command: python llm/serve_main.py
