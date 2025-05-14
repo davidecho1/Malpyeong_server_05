@@ -14,10 +14,10 @@ logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
 def main():
     GPU_PORT_MAP = {
-        0: 5021,
-        1: 5022,
-        2: 5023,
-        3: 5024
+        4: 5021,
+        5: 5022,
+        6: 5023,
+        7: 5024
     }
 
     port = GPU_PORT_MAP[gpu_id]
