@@ -18,7 +18,7 @@ def main():
     port = GPU_PORT_MAP[gpu_id]
 
     # 스케줄러 실행
-    csv_path = os.environ.get("SCHEDULE_CSV", "schedule/day.csv")
+    csv_path = os.environ.get("SCHEDULE_CSV", "../schedule/schedule(day).csv")
     start_scheduler(GPU_PORT_MAP, csv_path)
 
     print(f"[main] Starting FastAPI server on port {port} for GPU {gpu_id} (container: {container_name})...")
