@@ -1,6 +1,22 @@
 version: "2.4"
 
 services:
+  api:
+    build:
+      context: .                
+      dockerfile: Dockerfile   
+    container_name: malpyeong_api
+    volumes:
+      - ./scripts:/app/scripts
+      - ./schedule:/app/schedule
+      - ./state:/app/state
+    environment:
+      - SCRIPT_DIR=/app/scripts
+      - SCHEDULE_CSV=/app/schedule/schedule(day).csv
+    ports:
+      - "5020:5020"
+    command: python api_main.py
+
   llm0:
     build: ./llm
     container_name: llm0
@@ -17,6 +33,7 @@ services:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
       - "5021:5021"
+    command: python serve_main.py
 
   llm1:
     build: ./llm
@@ -34,6 +51,7 @@ services:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
       - "5022:5022"
+    command: python serve_main.py
 
   llm2:
     build: ./llm
@@ -51,6 +69,7 @@ services:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
       - "5023:5023"
+    command: python serve_main.py
 
   llm3:
     build: ./llm
@@ -68,3 +87,4 @@ services:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
       - "5024:5024"
+    command: python serve_main.py
