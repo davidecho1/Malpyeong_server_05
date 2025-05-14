@@ -13,10 +13,18 @@ from inference_api import inference_app
 logging.basicConfig(level=logging.INFO)
 
 # 컨테이너 이름 끝자리로 GPU 번호 & 포트 결정
-name = os.environ.get("CONTAINER_NAME", "llm0")
-gpu  = int(name[-1])
-port_map = {0:5021, 1:5022, 2:5023, 3:5024}
-port = port_map[gpu]
+container_name = os.environ.get("CONTAINER_NAME", "llm0")
+gpu_id = int(container_name[-1]) if container_name[-1].isdigit() else 0
+GPU_PORT_MAP = {
+        0: 5021,
+        1: 5022,
+        2: 5023,
+        3: 5024
+}
+
+port = GPU_PORT_MAP[gpu_id]
+
+
 
 logging.info(f"vLLM 서버 시작: GPU={gpu}, port={port}")
 uvicorn.run(inference_app, host="0.0.0.0", port=port, reload=False)
