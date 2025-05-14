@@ -24,7 +24,7 @@ services:
     devices:
       - /dev/nvidia1:/dev/nvidia1
     environment:
-      - CONTAINER_NAME=llm0
+      - CONTAINER_NAME=llm1
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
       - SCRIPT_DIR=/app/scripts
     volumes:
