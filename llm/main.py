@@ -24,7 +24,7 @@ def main():
     print(f"[main] Starting FastAPI server on port {port} for GPU {gpu_id} (container: {container_name})...")
 
     # FastAPI 앱 실행
-    uvicorn.run(app, host="0.0.0.0", port=5020, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
 
 if __name__ == "__main__":
     main()
