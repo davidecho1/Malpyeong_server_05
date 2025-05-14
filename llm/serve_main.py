@@ -16,10 +16,10 @@ logging.basicConfig(level=logging.INFO)
 container_name = os.environ.get("CONTAINER_NAME", "llm0")
 gpu_id = int(container_name[-1]) if container_name[-1].isdigit() else 0
 GPU_PORT_MAP = {
-        0: 5021,
-        1: 5022,
-        2: 5023,
-        3: 5024
+        4: 5021,
+        5: 5022,
+        6: 5023,
+        7: 5024
 }
 
 port = GPU_PORT_MAP[gpu_id]
