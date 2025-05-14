@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3.9"
 
 services:
   llm0:
@@ -6,13 +6,11 @@ services:
     container_name: llm0
     environment:
       - CONTAINER_NAME=llm0
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ['0']
-              capabilities: [gpu]
+    device_requests:
+      - driver: nvidia
+        count: 1
+        device_ids: ["0"]
+        capabilities: ["gpu"]
     volumes:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
@@ -23,13 +21,11 @@ services:
     container_name: llm1
     environment:
       - CONTAINER_NAME=llm1
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ['1']
-              capabilities: [gpu]
+    device_requests:
+      - driver: nvidia
+        count: 1
+        device_ids: ["1"]
+        capabilities: ["gpu"]
     volumes:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
@@ -40,13 +36,11 @@ services:
     container_name: llm2
     environment:
       - CONTAINER_NAME=llm2
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ['2']
-              capabilities: [gpu]
+    device_requests:
+      - driver: nvidia
+        count: 1
+        device_ids: ["2"]
+        capabilities: ["gpu"]
     volumes:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
@@ -57,13 +51,11 @@ services:
     container_name: llm3
     environment:
       - CONTAINER_NAME=llm3
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ['3']
-              capabilities: [gpu]
+    device_requests:
+      - driver: nvidia
+        count: 1
+        device_ids: ["3"]
+        capabilities: ["gpu"]
     volumes:
       - /mnt/llm_cache:/mnt/llm_cache
     ports:
