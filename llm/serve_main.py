@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
-import os
-import uvicorn
-import logging
+import os, uvicorn, logging
+import os, sys, uvicorn, logging
+
+# ──────────────────────────────────────────────────────────────
+# 이 스크립트가 있는 llm/ 디렉터리를 모듈 검색 경로에 추가
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# ──────────────────────────────────────────────────────────────
 
 # 실제 vLLM 모델 서버 실행(예: FastAPI별도 엔드포인트 or vllm serve CLI)
 from inference_api import inference_app  
