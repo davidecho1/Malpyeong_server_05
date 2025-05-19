@@ -1,30 +1,37 @@
 #!/usr/bin/env python3
-import os, uvicorn, logging
-import os, sys, uvicorn, logging
+import os
+import sys
+import logging
+import subprocess
 
-# ──────────────────────────────────────────────────────────────
-# 이 스크립트가 있는 llm/ 디렉터리를 모듈 검색 경로에 추가
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-# ──────────────────────────────────────────────────────────────
+# 이 스크립트 파일이 있는 llm/ 디렉터리를 모듈 검색 경로에 추가
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, SCRIPT_DIR)
 
-# 실제 vLLM 모델 서버 실행(예: FastAPI별도 엔드포인트 or vllm serve CLI)
-from inference_api import inference_app  
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
-logging.basicConfig(level=logging.INFO)
-
-# 컨테이너 이름 끝자리로 GPU 번호 & 포트 결정
-container_name = os.environ.get("CONTAINER_NAME", "llm0")
+# 컨테이너 이름 끝자리로 GPU 번호 추출
+container_name = os.environ.get("CONTAINER_NAME", "llm4")
 gpu_id = int(container_name[-1]) if container_name[-1].isdigit() else 0
-GPU_PORT_MAP = {
-        4: 5021,
-        5: 5022,
-        6: 5023,
-        7: 5024
+
+# GPU별 포트 매핑
+port_map = {
+    4: 5021,
+    5: 5022,
+    6: 5023,
+    7: 5024,
 }
+port = port_map.get(gpu_id, 5021)
 
-port = GPU_PORT_MAP[gpu_id]
+logging.info(f"vLLM 서버 시작: GPU={gpu_id}, port={port}")
 
+# vllm serve CLI 호출
+cmd = [
+    "vllm", "serve",
+    "--port", str(port),
+    "--device", str(gpu_id),
+]
+logging.info("실행 명령: " + " ".join(cmd))
 
-
-logging.info(f"vLLM 서버 시작: GPU={gpu}, port={port}")
-uvicorn.run(inference_app, host="0.0.0.0", port=port, reload=False)
+# 서빙 프로세스를 이 컨테이너의 메인 프로세스로 실행
+subprocess.run(cmd, check=True, env=os.environ)
