@@ -29,7 +29,7 @@ services:
       dockerfile: Dockerfile
     container_name: llm0
     devices:
-      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidia4:/dev/nvidia4
     environment:
       - CONTAINER_NAME=llm0
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
@@ -49,7 +49,7 @@ services:
       dockerfile: Dockerfile
     container_name: llm1
     devices:
-      - /dev/nvidia1:/dev/nvidia1
+      - /dev/nvidia5:/dev/nvidia5
     environment:
       - CONTAINER_NAME=llm1
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
@@ -69,7 +69,7 @@ services:
       dockerfile: Dockerfile
     container_name: llm2
     devices:
-      - /dev/nvidia2:/dev/nvidia2
+      - /dev/nvidia6:/dev/nvidia6
     environment:
       - CONTAINER_NAME=llm2
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
@@ -89,7 +89,7 @@ services:
       dockerfile: Dockerfile
     container_name: llm3
     devices:
-      - /dev/nvidia3:/dev/nvidia3
+      - /dev/nvidia7:/dev/nvidia7
     environment:
       - CONTAINER_NAME=llm3
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
