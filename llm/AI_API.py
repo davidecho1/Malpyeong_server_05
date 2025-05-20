@@ -88,7 +88,7 @@ async def models_download(request: Request):
     repo_id = data.get("user_id")
     try:
         model_dir = download_repo_and_register_model(repo_id)
-        return {"msg": f"Downloaded to: {model_dir}"}
+        return {"msg": f"Downloaded to: {model_dir} (actual path)"}
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=400)
 
