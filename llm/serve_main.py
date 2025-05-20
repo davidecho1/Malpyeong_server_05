@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
 # 컨테이너 이름 끝자리로 GPU 번호 추출
 container_name = os.environ.get("CONTAINER_NAME", "llm4")
-gpu_id = int(container_name[-1]) if container_name[-1].isdigit() else 0
+gpu_id = int(container_name[-1]) if container_name[-1].isdigit() else 4
 
 # GPU별 포트 매핑
 port_map = {
