@@ -9,8 +9,9 @@ import psycopg2
 from model_service import (
     download_repo_and_register_model,
     set_model_idle,
-    set_model_standby,
-    set_model_serving
+    set_model_serving,
+    kill_vllm_process_by_port,
+    launch_vllm
 )
 
 
@@ -65,12 +66,38 @@ async def models_download(request: Request):
 @app.post("/models/standby")
 async def standby_model(request: Request):
     data = await request.json()
-    user_id = data["user_id"]
+    user_id = data["user_id"]  # "team_name/model_name"
     gpu_id = data["gpu_id"]
     port = data["port"]
+
     try:
-        set_model_standby(user_id, gpu_id, port)
-        return {"msg": f"{user_id} → standby at GPU {gpu_id}, port {port}"}
+        team_name, model_name = user_id.split("/", 1)
+
+        # 1. DB에서 model path 조회
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT safetensors_path FROM models
+            WHERE team_name = %s AND model_name = %s
+        """, (team_name, model_name))
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not result:
+            raise ValueError(f"모델 {user_id}의 경로가 DB에 없습니다.")
+
+        model_path = result[0]
+
+        # 2. 해당 포트에서 vllm 프로세스 종료
+        kill_vllm_process_by_port(port)
+        # 3. 새 모델 실행
+        launch_vllm(model_path, port, gpu_id)
+        # 4. 상태 업데이트
+        set_model_standby(team_name, model_name, gpu_id)
+        return {
+            "msg": f"{user_id} → standby on GPU {gpu_id}, port {port} (path: {model_path})"
+        }
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=400)
     
@@ -87,32 +114,77 @@ async def serve_model(request: Request):
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=400)
     
-# 모델 idle    
 @app.post("/models/idle")
 async def idle_model(request: Request):
     data = await request.json()
-    user_id = data["user_id"]
+    user_id = data["user_id"]  # 예: "deepseek/my-model"
+
     try:
-        set_model_idle(user_id)
-        return {"msg": f"{user_id} → idle"}
+        team_name, model_name = user_id.split("/", 1)
+
+        # 1. 실행 중인 포트 조회
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT gpu_id FROM models
+            WHERE team_name = %s AND model_name = %s
+        """, (team_name, model_name))
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not result:
+            raise ValueError(f"{user_id} 상태 조회 실패")
+
+        gpu_id = result[0]
+        if gpu_id is None:
+            print(f"[idle] {user_id}는 이미 idle 상태입니다.")
+            return {"msg": f"{user_id} is already idle"}
+
+        # 2. 포트는 gpu_id와 1:1로 매핑된다고 가정 (예: GPU 0 → 5021)
+        port = 5021 + int(gpu_id)
+        # 3. vllm 종료
+        kill_vllm_process_by_port(port)
+        # 4. DB 상태 업데이트
+        set_model_idle(team_name, model_name)
+        return {"msg": f"{user_id} → idle (port {port} 종료 완료)"}
+
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=400)
+
     
 # 모델 스위치: 기존 serving → idle, 새 모델 → serving
 @app.post("/models/switch")
 async def switch_model(request: Request):
     data = await request.json()
-    old_model = data["old"]
-    new_model = data["new"]
+    old = data["old"]  # "team/model" 형식
+    new = data["new"]
     gpu_id = data["gpu_id"]
     port = data["port"]
+    
     try:
-        set_model_idle(old_model)
-        set_model_serving(new_model, gpu_id, port)
-        return {"msg": f"{old_model} → idle, {new_model} → serving"}
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=400)
+        old_team, old_model = old.split("/", 1)
+        new_team, new_model = new.split("/", 1)
 
+        # 1. 기존 모델 idle 처리 + vllm 종료
+        set_model_idle(old_team, old_model)
+        kill_vllm_process_by_port(port)
+
+        # 2. 새 모델 다운로드 및 경로 확보
+        new_model_path = download_repo_and_register_model(new)
+
+        # 3. 새 모델로 vllm serve 시작
+        launch_vllm(new_model_path, port, gpu_id)
+
+        # 4. DB 상태 업데이트
+        set_model_serving(new_team, new_model, gpu_id)
+
+        return {
+            "msg": f"{old} → idle, {new} → serving on GPU {gpu_id}, port {port}"
+        }
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+        
 @app.post("/eval/submit")
 async def submit_evaluation(request: Request):
     data = await request.json()
