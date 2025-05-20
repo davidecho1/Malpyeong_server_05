@@ -5,7 +5,7 @@ import random
 from datetime import datetime, timedelta
 
 MODEL_CSV = "models.csv"
-SCHEDULE_CSV = "schedule(day).csv"
+SCHEDULE_CSV = "schedule(time).csv"
 
 
 
