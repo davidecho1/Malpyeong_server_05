@@ -3,7 +3,7 @@ import time
 import psycopg2
 
 # PostgreSQL 접속 정보 (실제 환경에 맞게 수정하세요)
-PG_HOST = "127.0.0.1"
+PG_HOST = "192.168.242.203"
 PG_PORT = "5432"
 PG_USER = "postgres"
 PG_PASSWORD = "!TeddySum"
