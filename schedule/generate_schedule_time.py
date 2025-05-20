@@ -8,31 +8,29 @@ MODEL_CSV = "models.csv"
 SCHEDULE_CSV = "schedule(day).csv"
 
 
-START_TIME = datetime(2025, 5, 10, 9, 0)  # 2025-05-10 오전 9시 시작
-TIME_INTERVAL = timedelta(minutes=30)     # 30분 단위로 실행
-
 
 def read_model_list():
     with open(MODEL_CSV, newline='') as f:
         reader = csv.DictReader(f)
         return [row["user_id"].strip() for row in reader if row["user_id"].strip()]
 
-def generate_schedule_by_time(models, start_time, interval):
+def generate_schedule_with_index(models, shuffle=True):
     pairs = list(combinations(models, 2))
-    random.shuffle(pairs)
-    
+    if shuffle:
+        random.shuffle(pairs)
     schedule = []
     for i, (a, b) in enumerate(pairs):
-        scheduled_time = start_time + i * interval
-        schedule.append((scheduled_time.strftime("%Y-%m-%d %H:%M"), a, b))
+        schedule.append((i, a, b))  # i: 순번
     return schedule
+
 
 def write_schedule_csv(schedule):
     with open(SCHEDULE_CSV, "w", newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(["datetime", "user1", "user2"])
+        writer.writerow(["index", "user1", "user2"])
         for row in schedule:
             writer.writerow(row)
+
 
 if __name__ == "__main__":
     models = read_model_list()
@@ -41,4 +39,4 @@ if __name__ == "__main__":
     else:
         schedule = generate_schedule_by_time(models, START_TIME, TIME_INTERVAL)
         write_schedule_csv(schedule)
-        print(f"무작위 시간 조합 {len(schedule)}개를 {SCHEDULE_CSV}에 저장했습니다.")
+
