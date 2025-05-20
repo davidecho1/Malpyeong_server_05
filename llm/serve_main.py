@@ -25,11 +25,13 @@ port = port_map.get(gpu_id, 5021)
 
 logging.info(f"vLLM 서버 시작: GPU={gpu_id}, port={port}")
 
-# vllm serve CLI 호출
+# 환경변수로 GPU 지정
+os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+
 cmd = [
     "vllm", "serve",
     "--port", str(port),
-    "--device", str(gpu_id),
+    "--device", "cuda",  # 고정값
 ]
 logging.info("실행 명령: " + " ".join(cmd))
 
