@@ -6,7 +6,7 @@ import datetime
 import psycopg2
 from huggingface_hub import snapshot_download
 
-DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=127.0.0.1 port=5432"
+DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=192.168.242.203 port=5432"
 
 def kill_vllm_process_by_port(port: int):
     """포트를 점유 중인 vllm 프로세스 종료"""
