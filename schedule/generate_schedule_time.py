@@ -37,6 +37,6 @@ if __name__ == "__main__":
     if len(models) != 10:
         print(f"모델 수가 {len(models)}개입니다. 정확히 10개여야 합니다.")
     else:
-        schedule = generate_schedule_by_time(models, START_TIME, TIME_INTERVAL)
+        schedule = generate_schedule_with_index(models)
         write_schedule_csv(schedule)
 
