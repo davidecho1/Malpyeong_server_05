@@ -8,6 +8,33 @@ from huggingface_hub import snapshot_download
 
 DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=127.0.0.1 port=5432"
 
+def kill_vllm_process_by_port(port: int):
+    """포트를 점유 중인 vllm 프로세스 종료"""
+    try:
+        result = subprocess.run(
+            ["lsof", "-t", f"-i:{port}"], capture_output=True, text=True
+        )
+        pids = result.stdout.strip().split()
+        for pid in pids:
+            os.kill(int(pid), signal.SIGKILL)
+        print(f"[kill_vllm] 종료된 PID들: {pids}")
+    except Exception as e:
+        raise RuntimeError(f"vLLM 종료 실패 (port={port}): {e}")
+
+def launch_vllm(model_path: str, port: int, gpu_id: int):
+    """새로운 모델로 vllm serve 실행"""
+    try:
+        cmd = [
+            "vllm", "serve",
+            "--model", model_path,
+            "--port", str(port),
+            "--device", str(gpu_id)
+        ]
+        subprocess.Popen(cmd, env=os.environ)
+        print(f"[launch_vllm] 실행됨: {cmd}")
+    except Exception as e:
+        raise RuntimeError(f"vLLM 실행 실패: {e}")
+        
 def download_repo_and_register_model(hf_repo_id: str):
     """
     Hugging Face repo를 다운로드하고,
