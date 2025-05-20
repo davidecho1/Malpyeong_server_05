@@ -4,7 +4,7 @@
 import psycopg2
 
 # DB 접속 정보 
-DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=127.0.0.1 port=5432"
+DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=192.168.242.203 port=5432"
 
 def init_db():
     conn = psycopg2.connect(DB_CONN_INFO)
