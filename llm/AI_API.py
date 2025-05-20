@@ -21,7 +21,7 @@ import subprocess
 app = FastAPI()
 
 # PostgreSQL 접속 정보 (DB 연결 함수로 관리)
-DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=127.0.0.1 port=5432"
+DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=192.168.242.203 port=5432"
 
 
 
