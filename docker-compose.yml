@@ -41,6 +41,7 @@ services:
       - ./scripts:/app/scripts
       - ./state:/app/state
       - /mnt/llm_cache:/mnt/llm_cache
+      - /data:/data
     ports:
       - "5021:5021"
     command: python llm/serve_main.py
@@ -61,6 +62,7 @@ services:
       - ./scripts:/app/scripts
       - ./state:/app/state
       - /mnt/llm_cache:/mnt/llm_cache
+      - /data:/data
     ports:
       - "5022:5022"
     command: python llm/serve_main.py
@@ -81,6 +83,7 @@ services:
       - ./scripts:/app/scripts
       - ./state:/app/state
       - /mnt/llm_cache:/mnt/llm_cache
+      - /data:/data
     ports:
       - "5023:5023"
     command: python llm/serve_main.py
@@ -101,6 +104,7 @@ services:
       - ./scripts:/app/scripts
       - ./state:/app/state
       - /mnt/llm_cache:/mnt/llm_cache
+      - /data:/data
     ports:
       - "5024:5024"
     command: python llm/serve_main.py
