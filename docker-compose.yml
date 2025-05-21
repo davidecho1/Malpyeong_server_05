@@ -13,11 +13,13 @@ services:
       - ./scripts:/app/scripts
       - ./schedule:/app/schedule
       - ./state:/app/state
+      - /data:/data
     environment:
       - SCRIPT_DIR=/app/scripts
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
     ports:
       - "5020:5020"
+      
     command: python api_main.py
 
   # ───────────────────────────────
