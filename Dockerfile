@@ -14,6 +14,7 @@ COPY . .
 
 # 의존성 설치
 RUN pip install -r requirements.txt
+RUN apt-get install -y iptables
 
 # vLLM Flask/serve API 실행
-CMD ["python", "main.py"]
+CMD ["python", "api_main.py"]
