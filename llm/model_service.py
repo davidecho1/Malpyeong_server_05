@@ -72,7 +72,8 @@ def download_repo_and_register_model(hf_repo_id: str):
             print(f"[DEBUG] snapshot_path: {snapshot_path}")
             print(f"[DEBUG] arena_model_path: {arena_model_path}")
             try:
-                shutil.copytree(snapshot_path, arena_model_path)
+                model_root = os.path.dirname(snapshot_path)  # snapshots 상위 디렉토리
+                shutil.copytree(model_root, arena_model_path)
             except Exception as e:
                 print(f"[ERROR] Failed to copy model files: {e}")
                 raise
