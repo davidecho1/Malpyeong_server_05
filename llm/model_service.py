@@ -67,13 +67,15 @@ def download_repo_and_register_model(hf_repo_id: str):
             # 기존 경로가 있으면 제거 후 덮어쓰기
             if os.path.exists(arena_model_path):
                 shutil.rmtree(arena_model_path)
-                print(f"[DEBUG] snapshot_path: {snapshot_path}")
-                print(f"[DEBUG] arena_model_path: {arena_model_path}")
-                try:
-                    shutil.copytree(snapshot_path, arena_model_path)
-                except Exception as e:
-                    print(f"[ERROR] Failed to copy model files: {e}")
-                    raise
+            
+            # 무조건 복사 시도하도록 위치 옮기기
+            print(f"[DEBUG] snapshot_path: {snapshot_path}")
+            print(f"[DEBUG] arena_model_path: {arena_model_path}")
+            try:
+                shutil.copytree(snapshot_path, arena_model_path)
+            except Exception as e:
+                print(f"[ERROR] Failed to copy model files: {e}")
+                raise
 
         # 2. DB 등록
         conn = psycopg2.connect(DB_CONN_INFO)
