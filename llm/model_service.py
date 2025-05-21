@@ -60,8 +60,8 @@ def download_repo_and_register_model(hf_repo_id: str):
     arena_model_path = os.path.join(arena_root, model_id_clean)
 
     try:
-        # 1. 임시 디렉토리에 모델 다운로드 (캐시 X)
-        with tempfile.TemporaryDirectory() as tmp_cache:
+        # 1. 임시 디렉토리에 모델 다운로드 (캐시 X) → /tmp 대신 /data 사용
+        with tempfile.TemporaryDirectory(dir="/data") as tmp_cache:
             snapshot_path = snapshot_download(hf_repo_id, cache_dir=tmp_cache)
 
             # 기존 경로가 있으면 제거 후 덮어쓰기
@@ -73,7 +73,7 @@ def download_repo_and_register_model(hf_repo_id: str):
         conn = psycopg2.connect(DB_CONN_INFO)
         cur = conn.cursor()
 
-        # 기존 모델 삭제 시도 (참조 중이면 오류 발생 가능 → 상위 로직에서 try로 잡힘)
+        # 기존 모델 삭제 시도
         cur.execute("DELETE FROM models WHERE team_name = %s AND model_name = %s", (team_name, model_name))
 
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -95,7 +95,6 @@ def download_repo_and_register_model(hf_repo_id: str):
 
     except Exception as e:
         raise RuntimeError(f"DB 저장 중 오류: {e}")
-
         
 def set_model_standby(team_name: str, model_name: str, gpu_id: int):
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
