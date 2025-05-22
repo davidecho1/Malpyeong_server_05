@@ -185,7 +185,10 @@ async def idle_model(request: Request):
             return {"msg": f"{user_id} is already idle"}
 
         # 2. 포트는 gpu_id와 1:1로 매핑된다고 가정 (예: GPU 0 → 5021)
-        port = 5021 + int(gpu_id) - 4
+        if int(gpu_id) >= 4:
+            port = 5021 + int(gpu_id) - 4
+        else : 
+            port = 5021 + int(gpu_id)
         # 3. vllm 종료
         kill_vllm_process_by_port(port)
         # 4. DB 상태 업데이트
