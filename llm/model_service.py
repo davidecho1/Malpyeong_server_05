@@ -6,7 +6,9 @@ import signal
 import os
 import datetime
 import psycopg2
-
+import shutil
+import tempfile
+import datetime
 from huggingface_hub import snapshot_download
 
 
@@ -39,14 +41,7 @@ def launch_vllm(model_path: str, port: int, gpu_id: int):
     except Exception as e:
         raise RuntimeError(f"vLLM 실행 실패: {e}")
         
-import os
-import shutil
-import tempfile
-import datetime
-import psycopg2
-from huggingface_hub import snapshot_download
 
-DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=192.168.242.203 port=5432"
 
 def download_repo_and_register_model(hf_repo_id: str):
     """
