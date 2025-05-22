@@ -33,15 +33,19 @@ def launch_vllm(model_path: str, port: int, gpu_id: int):
             "vllm", "serve",
             model_path,
             "--port", str(port),
-            "--device", str(gpu_id)
+            "--device", "cuda"  # 고정값
         ]
         print(f"[launch_vllm] 실행 명령어: {' '.join(cmd)}")
-        proc = subprocess.Popen(cmd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = proc.communicate(timeout=10)  # 바로 죽으면 에러 잡기 위함
-        print(f"[vllm stdout] {stdout.decode()}")
-        print(f"[vllm stderr] {stderr.decode()}")
+
+        # 환경변수 설정: GPU ID를 CUDA_VISIBLE_DEVICES에 명시
+        env = os.environ.copy()
+        env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+
+        subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(f"[launch_vllm] 실행됨: {cmd}")
     except Exception as e:
         raise RuntimeError(f"vLLM 실행 실패: {e}")
+
         
 
 
