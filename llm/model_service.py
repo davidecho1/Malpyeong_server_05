@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import subprocess
+import signal
 import os
 import datetime
 import psycopg2
-import subprocess
+
 from huggingface_hub import snapshot_download
 
 
