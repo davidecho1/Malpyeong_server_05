@@ -31,7 +31,7 @@ def launch_vllm(model_path: str, port: int, gpu_id: int):
     try:
         cmd = [
             "vllm", "serve",
-            "--model", model_path,
+            model_path,
             "--port", str(port),
             "--device", str(gpu_id)
         ]
