@@ -6,14 +6,13 @@ from fastapi.responses import JSONResponse
 import datetime
 import psycopg2
 
-from model_service import (
+from llm.model_service import (
     download_repo_and_register_model,
     set_model_idle,
     set_model_serving,
     kill_vllm_process_by_port,
-    launch_vllm
+    launch_vllm,
 )
-
 import subprocess
 
 
