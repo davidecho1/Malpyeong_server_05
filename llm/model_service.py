@@ -4,8 +4,9 @@
 import os
 import datetime
 import psycopg2
-from huggingface_hub import snapshot_download
 import subprocess
+from huggingface_hub import snapshot_download
+
 
 DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=192.168.242.203 port=5432"
 
