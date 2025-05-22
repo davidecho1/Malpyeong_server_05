@@ -28,7 +28,6 @@ def kill_vllm_process_by_port(port: int):
         raise RuntimeError(f"vLLM 종료 실패 (port={port}): {e}")
 
 def launch_vllm(model_path: str, port: int, gpu_id: int):
-    """새로운 모델로 vllm serve 실행"""
     try:
         cmd = [
             "vllm", "serve",
@@ -36,7 +35,8 @@ def launch_vllm(model_path: str, port: int, gpu_id: int):
             "--port", str(port),
             "--device", str(gpu_id)
         ]
-        subprocess.Popen(cmd, env=os.environ)
+        print(f"[launch_vllm] 실행 명령어: {' '.join(cmd)}")
+        subprocess.Popen(cmd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         print(f"[launch_vllm] 실행됨: {cmd}")
     except Exception as e:
         raise RuntimeError(f"vLLM 실행 실패: {e}")
