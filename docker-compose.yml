@@ -19,7 +19,9 @@ services:
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
     ports:
       - "5020:5020"
-      
+    cap_add:
+      - NET_ADMIN
+    network_mode: host  
     command: python api_main.py
 
   # ───────────────────────────────
