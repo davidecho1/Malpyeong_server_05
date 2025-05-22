@@ -10,6 +10,7 @@ from llm.model_service import (
     download_repo_and_register_model,
     set_model_idle,
     set_model_serving,
+    set_model_standby,
     kill_vllm_process_by_port,
     launch_vllm,
 )
