@@ -2,7 +2,7 @@
 import os
 import sys
 import logging
-import subprocess
+import time
 
 # 이 스크립트 파일이 있는 llm/ 디렉터리를 모듈 검색 경로에 추가
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,17 +23,14 @@ port_map = {
 }
 port = port_map.get(gpu_id, 5021)
 
-logging.info(f"vLLM 서버 시작: GPU={gpu_id}, port={port}")
+logging.info(f"vLLM 대기 컨테이너 기동 완료: GPU={gpu_id}, port={port}")
 
 # 환경변수로 GPU 지정
 os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
-cmd = [
-    "vllm", "serve",
-    "--port", str(port),
-    "--device", "cuda",  # 고정값
-]
-logging.info("실행 명령: " + " ".join(cmd))
-
-# 서빙 프로세스를 이 컨테이너의 메인 프로세스로 실행
-subprocess.run(cmd, check=True, env=os.environ)
+# 컨테이너는 계속 살아있기만 하면 됨
+try:
+    while True:
+        time.sleep(3600)
+except KeyboardInterrupt:
+    logging.info("serve_main 종료")
