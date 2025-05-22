@@ -29,11 +29,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: llm0
+    container_name: llm4
     devices:
       - /dev/nvidia4:/dev/nvidia4
     environment:
-      - CONTAINER_NAME=llm0
+      - CONTAINER_NAME=llm4
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
       - SCRIPT_DIR=/app/scripts
     volumes:
@@ -50,11 +50,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: llm1
+    container_name: llm5
     devices:
       - /dev/nvidia5:/dev/nvidia5
     environment:
-      - CONTAINER_NAME=llm1
+      - CONTAINER_NAME=llm5
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
       - SCRIPT_DIR=/app/scripts
     volumes:
@@ -71,11 +71,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: llm2
+    container_name: llm6
     devices:
       - /dev/nvidia6:/dev/nvidia6
     environment:
-      - CONTAINER_NAME=llm2
+      - CONTAINER_NAME=llm6
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
       - SCRIPT_DIR=/app/scripts
     volumes:
@@ -92,11 +92,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: llm3
+    container_name: llm7
     devices:
       - /dev/nvidia7:/dev/nvidia7
     environment:
-      - CONTAINER_NAME=llm3
+      - CONTAINER_NAME=llm7
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
       - SCRIPT_DIR=/app/scripts
     volumes:
