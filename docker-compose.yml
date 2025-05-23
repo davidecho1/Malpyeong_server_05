@@ -1,5 +1,13 @@
 version: "2.4"
 
+
+networks:
+  malpyeong_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.123.0/24
+
 services:
   # ───────────────────────────────
   # 1) API + 스케줄러 (호스트 5020)
@@ -21,7 +29,8 @@ services:
       - "5020:5020"
     cap_add:
       - NET_ADMIN
-    network_mode: host  
+    networks:
+      - malpyeong_net
     command: python api_main.py
 
   # ───────────────────────────────
@@ -46,6 +55,8 @@ services:
       - /data:/data
     ports:
       - "5021:5021"
+    networks:
+      - malpyeong_net
     command: python llm/serve_main.py
 
   llm1:
@@ -67,6 +78,8 @@ services:
       - /data:/data
     ports:
       - "5022:5022"
+    networks:
+      - malpyeong_net
     command: python llm/serve_main.py
 
   llm2:
@@ -88,6 +101,8 @@ services:
       - /data:/data
     ports:
       - "5023:5023"
+    networks:
+      - malpyeong_net
     command: python llm/serve_main.py
 
   llm3:
@@ -109,4 +124,6 @@ services:
       - /data:/data
     ports:
       - "5024:5024"
+    networks:
+      - malpyeong_net
     command: python llm/serve_main.py
