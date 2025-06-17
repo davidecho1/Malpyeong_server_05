@@ -23,11 +23,12 @@ port_map = {
 }
 port = port_map.get(gpu_id, 5021)
 
-logging.info(f"vLLM 대기 컨테이너 기동 완료: GPU={gpu_id}, port={port}")
-
-# 환경변수로 GPU 지정
+logging.info(f"vLLM 서버 시작: GPU={gpu_id}, port={port}")
 os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
-
+cmd = ["vllm", "serve", "--port", str(port), "--device", "cuda"]
+logging.info("실행 명령: " + " ".join(cmd))
+# 컨테이너의 메인 프로세스로 vLLM을 실행
+subprocess.run(cmd, check=True, env=os.environ)
 # 컨테이너는 계속 살아있기만 하면 됨
 try:
     while True:
