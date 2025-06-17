@@ -35,6 +35,17 @@ fi
 
 echo "현재 활성 쌍: $OLD_PAIR → $NEW_PAIR 전환 시작"
 
+# 이전에 서빙 중이던 모델 목록 파일
+STATE_MODEL_FILE="$PROJECT_ROOT/state/active_models.txt"
+# 없으면 오늘 모델로 초기화
+if [ ! -f "$STATE_MODEL_FILE" ]; then
+  printf "%s\n%s\n" "$SERVE1" "$SERVE2" > "$STATE_MODEL_FILE"
+fi
+# OLD1, OLD2 변수에 어제 서빙 모델 이름 로드
+mapfile -t OLD_MODELS < "$STATE_MODEL_FILE"
+OLD1=${OLD_MODELS[0]}
+OLD2=${OLD_MODELS[1]}
+
 # -------------------------------
 #  오늘/내일 모델 가져오기
 # -------------------------------
@@ -58,16 +69,22 @@ fi
 #  기존 serving 모델 → idle
 # -------------------------------
 echo "serving → idle 전환 중..."
-curl -s -X POST $API_BASE/models/idle -H "Content-Type: application/json" -d "{\"user_id\": \"$SERVE1\"}"
-curl -s -X POST $API_BASE/models/idle -H "Content-Type: application/json" -d "{\"user_id\": \"$SERVE2\"}"
-
+curl -s -X POST $API_BASE/models/idle \
+  -H "Content-Type: application/json" \
+  -d "{\"user_id\":\"$OLD1\"}"
+curl -s -X POST $API_BASE/models/idle \
+  -H "Content-Type: application/json" \
+  -d "{\"user_id\":\"$OLD2\"}"
 # -------------------------------
 #  standby → serving
 # -------------------------------
-echo "standby → serving 전환 중..."
-curl -s -X POST $API_BASE/models/serve -H "Content-Type: application/json" -d "{\"user_id\": \"$SERVE1\", \"gpu_id\": ${NEW_GPUS[0]}, \"port\": ${NEW_PORTS[0]}}"
-curl -s -X POST $API_BASE/models/serve -H "Content-Type: application/json" -d "{\"user_id\": \"$SERVE2\", \"gpu_id\": ${NEW_GPUS[1]}, \"port\": ${NEW_PORTS[1]}}"
-
+echo "old 모델 → new 모델 스위칭 중..."
+curl -s -X POST $API_BASE/models/switch \
+  -H "Content-Type: application/json" \
+  -d "{\"old\":\"$OLD1\",\"new\":\"$SERVE1\",\"gpu_id\":${NEW_GPUS[0]},\"port\":${NEW_PORTS[0]}}"
+curl -s -X POST $API_BASE/models/switch \
+  -H "Content-Type: application/json" \
+  -d "{\"old\":\"$OLD2\",\"new\":\"$SERVE2\",\"gpu_id\":${NEW_GPUS[1]},\"port\":${NEW_PORTS[1]}}"
 # -------------------------------
 #  idle → standby (내일 모델)
 # -------------------------------
@@ -76,10 +93,13 @@ if [[ -z "$STANDBY1" || -z "$STANDBY2" ]]; then
   echo "오늘이 마지막 평가일입니다."
 else
   echo "idle → standby 전환 중..."
-  curl -s -X POST $API_BASE/models/standby -H "Content-Type: application/json" -d "{\"user_id\": \"$STANDBY1\", \"gpu_id\": ${OLD_GPUS[0]}, \"port\": ${OLD_PORTS[0]}}"
-  curl -s -X POST $API_BASE/models/standby -H "Content-Type: application/json" -d "{\"user_id\": \"$STANDBY2\", \"gpu_id\": ${OLD_GPUS[1]}, \"port\": ${OLD_PORTS[1]}}"
+  curl -s -X POST $API_BASE/models/standby \
+    -H "Content-Type: application/json" \
+    -d "{\"user_id\":\"$STANDBY1\",\"gpu_id\":${OLD_GPUS[0]},\"port\":${OLD_PORTS[0]}}"
+  curl -s -X POST $API_BASE/models/standby \
+    -H "Content-Type: application/json" \
+    -d "{\"user_id\":\"$STANDBY2\",\"gpu_id\":${OLD_GPUS[1]},\"port\":${OLD_PORTS[1]}}"
 fi
-
 # -------------------------------
 #  포트 스위칭 (iptables)
 # -------------------------------
