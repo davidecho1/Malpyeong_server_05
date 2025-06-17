@@ -4,10 +4,7 @@ import sys
 import logging
 import time
 import subprocess
-<<<<<<< HEAD
 
-=======
->>>>>>> fix: import subprocess in serve_main.py
 # 이 스크립트 파일이 있는 llm/ 디렉터리를 모듈 검색 경로에 추가
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
