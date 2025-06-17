@@ -35,6 +35,17 @@ fi
 
 echo "현재 활성 쌍: $OLD_PAIR → $NEW_PAIR 전환 시작"
 
+# 이전에 서빙 중이던 모델 목록 파일
+STATE_MODEL_FILE="$PROJECT_ROOT/state/active_models.txt"
+# 없으면 오늘 모델로 초기화
+if [ ! -f "$STATE_MODEL_FILE" ]; then
+  printf "%s\n%s\n" "$SERVE1" "$SERVE2" > "$STATE_MODEL_FILE"
+fi
+# OLD1, OLD2 변수에 어제 서빙 모델 이름 로드
+mapfile -t OLD_MODELS < "$STATE_MODEL_FILE"
+OLD1=${OLD_MODELS[0]}
+OLD2=${OLD_MODELS[1]}
+
 # -------------------------------
 #  오늘/내일 모델 가져오기
 # -------------------------------
@@ -58,8 +69,12 @@ fi
 #  기존 serving 모델 → idle
 # -------------------------------
 echo "serving → idle 전환 중..."
-curl -s -X POST $API_BASE/models/idle -H "Content-Type: application/json" -d "{\"user_id\": \"$SERVE1\"}"
-curl -s -X POST $API_BASE/models/idle -H "Content-Type: application/json" -d "{\"user_id\": \"$SERVE2\"}"
+curl -s -X POST $API_BASE/models/idle \
+  -H "Content-Type: application/json" \
+  -d "{\"user_id\":\"$OLD1\"}"
+curl -s -X POST $API_BASE/models/idle \
+  -H "Content-Type: application/json" \
+  -d "{\"user_id\":\"$OLD2\"}"
 
 # -------------------------------
 #  standby → serving
