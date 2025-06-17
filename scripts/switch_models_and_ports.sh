@@ -75,6 +75,7 @@ curl -s -X POST $API_BASE/models/idle \
 curl -s -X POST $API_BASE/models/idle \
   -H "Content-Type: application/json" \
   -d "{\"user_id\":\"$OLD2\"}"
+
 # -------------------------------
 #  standby → serving
 # -------------------------------
