@@ -65,9 +65,12 @@ curl -s -X POST $API_BASE/models/idle -H "Content-Type: application/json" -d "{\
 #  standby → serving
 # -------------------------------
 echo "standby → serving 전환 중..."
-curl -s -X POST $API_BASE/models/serve -H "Content-Type: application/json" -d "{\"user_id\": \"$SERVE1\", \"gpu_id\": ${NEW_GPUS[0]}, \"port\": ${NEW_PORTS[0]}}"
-curl -s -X POST $API_BASE/models/serve -H "Content-Type: application/json" -d "{\"user_id\": \"$SERVE2\", \"gpu_id\": ${NEW_GPUS[1]}, \"port\": ${NEW_PORTS[1]}}"
-
+curl -s -X POST $API_BASE/models/serve \
+  -H "Content-Type: application/json" \
+  -d "{\"user_id\":\"$SERVE1\",\"gpu_id\":${NEW_GPUS[0]},\"port\":${NEW_PORTS[0]},\"external_port\":1111}"
+curl -s -X POST $API_BASE/models/serve \
+  -H "Content-Type: application/json" \
+  -d "{\"user_id\":\"$SERVE2\",\"gpu_id\":${NEW_GPUS[1]},\"port\":${NEW_PORTS[1]},\"external_port\":2222}"
 # -------------------------------
 #  idle → standby (내일 모델)
 # -------------------------------
