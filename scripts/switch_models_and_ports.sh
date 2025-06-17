@@ -83,11 +83,11 @@ fi
 # -------------------------------
 #  포트 스위칭 (iptables)
 # -------------------------------
-echo "포트 전환 중..."
-iptables -t nat -D PREROUTING -p tcp --dport 1111 -j REDIRECT --to-port ${OLD_PORTS[0]} 2>/dev/null
-iptables -t nat -D PREROUTING -p tcp --dport 2222 -j REDIRECT --to-port ${OLD_PORTS[1]} 2>/dev/null
-iptables -t nat -A PREROUTING -p tcp --dport 1111 -j REDIRECT --to-port ${NEW_PORTS[0]}
-iptables -t nat -A PREROUTING -p tcp --dport 2222 -j REDIRECT --to-port ${NEW_PORTS[1]}
+echo "포트 전환 중 (호스트 스크립트 호출)..."
+sudo /usr/local/bin/update_iptables.sh \
+  1111 ${NEW_PORTS[0]} \
+  2222 ${NEW_PORTS[1]}
+
 
 # -------------------------------
 #  상태 저장
