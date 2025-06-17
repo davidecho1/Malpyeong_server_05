@@ -135,26 +135,64 @@ async def standby_model(request: Request):
 @app.post("/models/serve")
 async def serve_model(request: Request):
     data = await request.json()
-    user_id = data["user_id"]       # "team/model"
-    gpu_id = data["gpu_id"]
-    port = data["port"]             # 내부 포트 (5021~5024)
-    external_port = data["external_port"]  # 외부 포트 (1111 또는 2222)
+    user_id = data["user_id"]
+    gpu_id   = data["gpu_id"]
+    port     = data["port"]
+    external_port = data["external_port"]
 
     try:
         team_name, model_name = user_id.split("/", 1)
+        conn = get_db_connection()
+        cur  = conn.cursor()
 
-        # 1. 외부 포트 연결 (iptables 사용)
-        switch_external_port(external_port, port)
+        # ───────────────────────────────
+        # 0) 같은 GPU에 묶여 있는 기존 serving 모델 조회
+        # ───────────────────────────────
+        cur.execute(
+            "SELECT team_name, model_name FROM models "
+            "WHERE gpu_id = %s AND model_state = 'serving'",
+            (gpu_id,)
+        )
+        old = cur.fetchone()
+        if old:
+            old_team, old_model = old
+            # 1) 기존 모델을 idle 상태로 전환
+            set_model_idle(old_team, old_model)
 
-        # 2. DB 상태 업데이트
+        # ───────────────────────────────
+        # 2) DB에서 새 모델 경로 조회
+        # ───────────────────────────────
+        cur.execute(
+            "SELECT safetensors_path FROM models "
+            "WHERE team_name = %s AND model_name = %s",
+            (team_name, model_name)
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not row:
+            raise ValueError(f"모델 {user_id} 경로가 DB에 없습니다.")
+        model_path = row[0]
+
+        # ───────────────────────────────
+        # 3) 프로세스 교체
+        # ───────────────────────────────
+        kill_vllm_process_by_port(port)
+        launch_vllm(model_path, port, gpu_id)
+
+        # ───────────────────────────────
+        # 4) 새 모델을 serving으로 표시
+        # ───────────────────────────────
         set_model_serving(team_name, model_name, gpu_id)
 
         return {
-            "msg": f"{user_id} → serving at GPU {gpu_id}, internal port {port}, external port {external_port}"
+            "msg": f"{user_id} → serving on GPU {gpu_id}, ports: internal {port}, external {external_port}"
         }
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=400)
+
 
     
 @app.post("/models/idle")
