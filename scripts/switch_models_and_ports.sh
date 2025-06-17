@@ -95,8 +95,12 @@ if [[ -z "$STANDBY1" || -z "$STANDBY2" ]]; then
   echo "오늘이 마지막 평가일입니다."
 else
   echo "idle → standby 전환 중..."
-  curl -s -X POST $API_BASE/models/standby -H "Content-Type: application/json" -d "{\"user_id\": \"$STANDBY1\", \"gpu_id\": ${OLD_GPUS[0]}, \"port\": ${OLD_PORTS[0]}}"
-  curl -s -X POST $API_BASE/models/standby -H "Content-Type: application/json" -d "{\"user_id\": \"$STANDBY2\", \"gpu_id\": ${OLD_GPUS[1]}, \"port\": ${OLD_PORTS[1]}}"
+  curl -s -X POST $API_BASE/models/standby \
+    -H "Content-Type: application/json" \
+    -d "{\"user_id\":\"$STANDBY1\",\"gpu_id\":${OLD_GPUS[0]},\"port\":${OLD_PORTS[0]}}"
+  curl -s -X POST $API_BASE/models/standby \
+    -H "Content-Type: application/json" \
+    -d "{\"user_id\":\"$STANDBY2\",\"gpu_id\":${OLD_GPUS[1]},\"port\":${OLD_PORTS[1]}}"
 fi
 
 # -------------------------------
