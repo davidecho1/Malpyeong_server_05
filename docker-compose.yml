@@ -36,7 +36,7 @@ services:
   # ───────────────────────────────
   # 2) vLLM 추론 컨테이너 4대 (5021~5024)
   # ───────────────────────────────
-  llm0:
+  llm4:
     build:
       context: .
       dockerfile: Dockerfile
@@ -59,7 +59,7 @@ services:
       - malpyeong_net
     command: python llm/serve_main.py
 
-  llm1:
+  llm5:
     build:
       context: .
       dockerfile: Dockerfile
@@ -82,7 +82,7 @@ services:
       - malpyeong_net
     command: python llm/serve_main.py
 
-  llm2:
+  llm6:
     build:
       context: .
       dockerfile: Dockerfile
@@ -105,7 +105,7 @@ services:
       - malpyeong_net
     command: python llm/serve_main.py
 
-  llm3:
+  llm7:
     build:
       context: .
       dockerfile: Dockerfile
