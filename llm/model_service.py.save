@@ -38,50 +38,23 @@ GPU_TO_CONTAINER = {
 }
 
 def launch_vllm(model_path: str, port: int, gpu_id: int):
-    import time
-    import docker
-
     try:
-        # 1) 도커 소켓 연결 및 컨테이너 획득
-        docker_client = docker.DockerClient(base_url="unix:///var/run/docker.sock")
+        docker_client = docker.from_env()  # ✅ 여기로 이동
         container = docker_client.containers.get(GPU_TO_CONTAINER[gpu_id])
 
-        # 2) 기존에 실행 중인 vLLM 있으면 종료
-        check_cmd = f"pgrep -f 'vllm serve.*--port {port}'"
-        exit_code, _ = container.exec_run(check_cmd)
-        if exit_code == 0:
-            # 포트 충돌 방지용으로 기존 프로세스 kill
-            container.exec_run(f"pkill -f 'vllm serve.*--port {port}'", detach=True)
+        # 기존 vLLM 종료
+        container.exec_run(f"pkill -f 'vllm serve.*--port {port}'", detach=False)
 
-        # 3) 새 vLLM 실행 명령 문자열
-        cmd = (
-            f"vllm serve {model_path} --port {port} --host 0.0.0.0 --device cuda"
-        )
-        print(f"[CMD 확인] {cmd!r}")
-
-        # 4) 컨테이너 내부에서 vLLM 백그라운드 실행 (nohup + & + tty)
-#        container.exec_run(
-#            ["/bin/bash", "-c", cmd],
-#            detach=True
-#        )
-         # → 수정: nohup + & 로 완전 독립 실행, tty=True 로 PTY 할당
-#        bg_cmd = f"nohup {cmd} > /tmp/vllm_{port}.log 2>&1 &"
-#        container.exec_run(
-#            ["/bin/bash", "-c", bg_cmd],
-#            detach=True,
-#            tty=False
-#        )
-        container.exec_run(["/bin/bash", "-lc", cmd], detach=True)
-        print(f"[launch_vllm] detached 모드로 컨테이너 `{GPU_TO_CONTAINER[gpu_id]}` 에서 실행: {cmd}")
-        # 5) 프로세스가 잘 떠 있는지 확인
-        time.sleep(2)
-        proc_check = container.exec_run(check_cmd)
-        if proc_check.exit_code != 0:
-            raise RuntimeError("vLLM serve 프로세스가 기동되지 않았습니다.")
-        print(f"[DEBUG] vLLM 프로세스 확인:\n{proc_check.output.decode().strip()}")
-
+        # 새 vLLM 실행
+        cmd = f"CUDA_VISIBLE_DEVICES=0 vllm serve {model_path} --port {port} --host 0.0.0.0 --device cuda".strip()
+        print(f"[DEBUG] 실행 명령어: {cmd!r}")
+        container.exec_run(["sh", "-c", cmd], detach=True)
+       
+ print(f"[launch_vllm] 컨테이너 {GPU_TO_CONTAINER[gpu_id]}에서 실행됨: {cmd}")
     except Exception as e:
         raise RuntimeError(f"컨테이너 내 vLLM 실행 실패: {e}")
+
+
 
 
 def download_repo_and_register_model(hf_repo_id: str):
@@ -107,13 +80,16 @@ def download_repo_and_register_model(hf_repo_id: str):
             # 기존 경로가 있으면 제거 후 덮어쓰기
             if os.path.exists(arena_model_path):
                 shutil.rmtree(arena_model_path)
-
-            # 복사할 경로는 snapshot 디렉토리까지 포함
-            # 예: snapshot_path = /data/.../models--org--name/snapshots/xxx
-            shutil.copytree(snapshot_path, arena_model_path)
-
-        print(f"[DEBUG] snapshot_path: {snapshot_path}")
-        print(f"[DEBUG] arena_model_path: {arena_model_path}")
+            
+            # 무조건 복사 시도하도록 위치 옮기기
+            print(f"[DEBUG] snapshot_path: {snapshot_path}")
+            print(f"[DEBUG] arena_model_path: {arena_model_path}")
+            try:
+                model_root = snapshot_path  # /.../snapshots/<revision>
+                shutil.copytree(model_root, arena_model_path)
+            except Exception as e:
+                print(f"[ERROR] Failed to copy model files: {e}")
+                raise
 
         # 2. DB 등록
         conn = psycopg2.connect(DB_CONN_INFO)
@@ -141,7 +117,7 @@ def download_repo_and_register_model(hf_repo_id: str):
 
     except Exception as e:
         raise RuntimeError(f"DB 저장 중 오류: {e}")
-
+        
 def set_model_standby(team_name: str, model_name: str, gpu_id: int):
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:

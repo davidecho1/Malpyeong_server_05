@@ -4,7 +4,6 @@ version: "2.4"
 networks:
   malpyeong_net:
     driver: bridge
-    name: malpyeong_net
     ipam:
       config:
         - subnet: 172.18.123.0/24
@@ -16,12 +15,9 @@ services:
   api:
     build:
       context: .            # 프로젝트 루트의 Dockerfile 사용
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile
     container_name: malpyeong_api
-    privileged: true
-
     volumes:
-      - ./:/app
       - ./scripts:/app/scripts
       - ./schedule:/app/schedule
       - ./state:/app/state
@@ -30,20 +26,13 @@ services:
     environment:
       - SCRIPT_DIR=/app/scripts
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
-      - DOCKER_HOST=unix:///var/run/docker.sock
-      - DB_HOST=host.docker.internal
-      - DB_PORT=5432
-      - DB_NAME=malpyeong
-      - DB_USER=postgres
-      - DB_PASSWORD=!TeddySum
     ports:
       - "5020:5020"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     cap_add:
       - NET_ADMIN
     networks:
       - malpyeong_net
+    command: python api_main.py
 
   # ───────────────────────────────
   # 2) vLLM 추론 컨테이너 4대 (5021~5024)
@@ -51,15 +40,16 @@ services:
   llm4:
     build:
       context: .
-      dockerfile: Dockerfile.llm
+      dockerfile: Dockerfile
     container_name: llm4
-    runtime: nvidia
+    devices:
+      - /dev/nvidia4:/dev/nvidia4
     environment:
       - CONTAINER_NAME=llm4
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
       - SCRIPT_DIR=/app/scripts
-      - NVIDIA_VISIBLE_DEVICES=4 
-    volumes:
+    
+	volumes:
       - ./schedule:/app/schedule
       - ./scripts:/app/scripts
       - ./state:/app/state
@@ -69,18 +59,19 @@ services:
       - "5021:5021"
     networks:
       - malpyeong_net
+    command: python llm/serve_main.py
 
   llm5:
     build:
       context: .
-      dockerfile: Dockerfile.llm
+      dockerfile: Dockerfile
     container_name: llm5
-    runtime: nvidia
+    devices:
+      - /dev/nvidia5:/dev/nvidia5
     environment:
       - CONTAINER_NAME=llm5
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
       - SCRIPT_DIR=/app/scripts
-      - NVIDIA_VISIBLE_DEVICES=5
     volumes:
       - ./schedule:/app/schedule
       - ./scripts:/app/scripts
@@ -91,18 +82,19 @@ services:
       - "5022:5022"
     networks:
       - malpyeong_net
+    command: python llm/serve_main.py
 
   llm6:
     build:
       context: .
-      dockerfile: Dockerfile.llm
+      dockerfile: Dockerfile
     container_name: llm6
-    runtime: nvidia
+    devices:
+      - /dev/nvidia6:/dev/nvidia6
     environment:
       - CONTAINER_NAME=llm6
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
       - SCRIPT_DIR=/app/scripts
-      - NVIDIA_VISIBLE_DEVICES=6
     volumes:
       - ./schedule:/app/schedule
       - ./scripts:/app/scripts
@@ -113,18 +105,19 @@ services:
       - "5023:5023"
     networks:
       - malpyeong_net
+    command: python llm/serve_main.py
 
   llm7:
     build:
       context: .
-      dockerfile: Dockerfile.llm
+      dockerfile: Dockerfile
     container_name: llm7
-    runtime: nvidia
+    devices:
+      - /dev/nvidia7:/dev/nvidia7
     environment:
       - CONTAINER_NAME=llm7
       - SCHEDULE_CSV=/app/schedule/schedule(day).csv
       - SCRIPT_DIR=/app/scripts
-      - NVIDIA_VISIBLE_DEVICES=7
     volumes:
       - ./schedule:/app/schedule
       - ./scripts:/app/scripts
@@ -135,3 +128,4 @@ services:
       - "5024:5024"
     networks:
       - malpyeong_net
+    command: python llm/serve_main.py

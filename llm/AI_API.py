@@ -5,24 +5,40 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import datetime
 import psycopg2
+import docker
+import os
 
 from llm.model_service import (
     download_repo_and_register_model,
     set_model_idle,
     set_model_serving,
     set_model_standby,
-    kill_vllm_process_by_port,
-    launch_vllm,
+    kill_vllm_process_by_port
 )
 import subprocess
 
+docker_client = docker.from_env()  # ← 추가: Docker 소켓 연결
 
+# GPU 번호를 컨테이너 이름으로 매핑
+GPU_TO_CONTAINER = {
+    4: "llm4",
+    5: "llm5",
+    6: "llm6",
+    7: "llm7"
+}
 
 app = FastAPI()
 
 # PostgreSQL 접속 정보 (DB 연결 함수로 관리)
-DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=192.168.242.203 port=5432"
-
+#DB_CONN_INFO = "dbname=malpyeong user=postgres password=!TeddySum host=192.168.242.203 port=5432"
+# ========== 환경변수 기반 DB 접속 문자열 구성 ==========
+DB_CONN_INFO = (
+    f"dbname={os.getenv('DB_NAME','malpyeong')} "
+    f"user={os.getenv('DB_USER','postgres')} "
+    f"password={os.getenv('DB_PASSWORD','!TeddySum')} "
+    f"host={os.getenv('DB_HOST','host.docker.internal')} "
+    f"port={os.getenv('DB_PORT','5432')}"
+)
 
 
 def get_db_connection():
@@ -119,9 +135,9 @@ async def standby_model(request: Request):
 
         model_path = result[0]
 
-        # 2. 해당 포트에서 vllm 프로세스 종료
-        kill_vllm_process_by_port(port)
-        # 3. 새 모델 실행
+        # 1) 이전 vLLM 프로세스 종료 (컨테이너 내부에서)
+        # 2) 새로운 vLLM serve 실행
+        from llm.model_service import launch_vllm
         launch_vllm(model_path, port, gpu_id)
         # 4. 상태 업데이트
         set_model_standby(team_name, model_name, gpu_id)
@@ -130,11 +146,17 @@ async def standby_model(request: Request):
         }
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=400)
-    
+
 # 모델 서빙
 @app.post("/models/serve")
 async def serve_model(request: Request):
-    data = await request.json()
+    try:
+        data = await request.json()
+        print("[DEBUG] 수신 데이터:", data)
+    except Exception as ex:
+        print("[ERROR] JSON 파싱 실패:", str(ex))
+        return JSONResponse(content={"error": "invalid json", "detail": str(ex)}, status_code=400)
+
     user_id = data["user_id"]
     gpu_id   = data["gpu_id"]
     port     = data["port"]
@@ -178,8 +200,14 @@ async def serve_model(request: Request):
         # ───────────────────────────────
         # 3) 프로세스 교체
         # ───────────────────────────────
-        kill_vllm_process_by_port(port)
+        from llm.model_service import launch_vllm
         launch_vllm(model_path, port, gpu_id)
+
+	# ───────────────────────────────
+        # 3.5) 외부포트 → 내부포트 NAT 설정
+        switch_external_port(external_port, port)
+        # (이 함수가 내부적으로 iptables -t nat -D …, -A … 를 실행합니다)
+ 	# ───────────────────────────────
 
         # ───────────────────────────────
         # 4) 새 모델을 serving으로 표시
@@ -240,48 +268,72 @@ async def idle_model(request: Request):
 # 모델 스위치: 기존 serving → idle, 새 모델 → serving
 @app.post("/models/switch")
 async def switch_model(request: Request):
-    data = await request.json()
-    old = data["old"]  # "team/model"
-    new = data["new"]  # "team/model"
-    gpu_id = data["gpu_id"]
-    port = data["port"]  # 내부 포트
-
+    """
+    현재 외부 포트(1111, 2222)에 연결된 서빙 모델과 스탠바이 모델을 서로 교체
+    DB 상태 업데이트 + iptables NAT 연결 재설정
+    """
     try:
-        old_team, old_model = old.split("/", 1)
-        new_team, new_model = new.split("/", 1)
-
-        # 1. 기존 모델 idle 처리 + vllm 종료
-        set_model_idle(old_team, old_model)
-        kill_vllm_process_by_port(port)
-
-        # 2. 새 모델 경로 조회 (다운로드 X)
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("""
-            SELECT safetensors_path FROM models
-            WHERE team_name = %s AND model_name = %s
-        """, (new_team, new_model))
-        result = cur.fetchone()
-        cur.close()
-        conn.close()
 
-        if not result:
-            raise ValueError(f"{new} 모델 경로를 DB에서 찾을 수 없습니다.")
+        updates = []
 
-        model_path = result[0]
+        for external_port, candidates in EXTERNAL_TO_INTERNAL_PORTS.items():
+            # 후보 내부 포트: 2개 중 어떤 것이 serving인지 찾음
+            serving_port = None
+            standby_port = None
+            for port in candidates:
+                cur.execute("""
+                    SELECT team_name, model_name, gpu_id FROM models
+                    WHERE model_state = 'serving' AND safetensors_port = %s
+                """, (port,))
+                row = cur.fetchone()
+                if row:
+                    serving_port = port
+                    serving_model = row
+                else:
+                    standby_port = port
 
-        # 3. 새 모델 serve 실행
-        launch_vllm(model_path, port, gpu_id)
+            if serving_port is None or standby_port is None:
+                raise RuntimeError(f"서빙/스탠바이 포트를 식별할 수 없음: {candidates}")
 
-        # 4. 상태 업데이트
-        set_model_serving(new_team, new_model, gpu_id)
+            # 1. 기존 serving → standby
+            cur.execute("""
+                UPDATE models SET model_state = 'standby'
+                WHERE safetensors_port = %s
+            """, (serving_port,))
+            updates.append(("standby", *serving_model))
+
+            # 2. standby → serving
+            cur.execute("""
+                UPDATE models SET model_state = 'serving'
+                WHERE safetensors_port = %s
+            """, (standby_port,))
+
+            cur.execute("""
+                SELECT team_name, model_name, gpu_id FROM models
+                WHERE safetensors_port = %s
+            """, (standby_port,))
+            standby_model = cur.fetchone()
+            updates.append(("serving", *standby_model))
+
+            # 3. 외부 포트 NAT 재연결 (iptables)
+            switch_external_port(external_port, standby_port)
+
+        conn.commit()
 
         return {
-            "msg": f"{old} → idle, {new} → serving on GPU {gpu_id}, port {port}"
+            "msg": "모델 스위칭 완료",
+            "details": updates
         }
 
     except Exception as e:
+        conn.rollback()
         return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        cur.close()
+        conn.close()
 
         
 @app.post("/eval/submit")

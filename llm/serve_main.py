@@ -22,13 +22,8 @@ port_map = {
     7: 5024,
 }
 port = port_map.get(gpu_id, 5021)
-
-logging.info(f"vLLM 서버 시작: GPU={gpu_id}, port={port}")
-os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
-cmd = ["vllm", "serve", "--port", str(port), "--device", "cuda"]
-logging.info("실행 명령: " + " ".join(cmd))
-# 컨테이너의 메인 프로세스로 vLLM을 실행
-subprocess.run(cmd, check=True, env=os.environ)
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+logging.info("LLM 컨테이너 유휴 모드 진입: API 호출로 vLLM serve를 실행합니다")
 # 컨테이너는 계속 살아있기만 하면 됨
 try:
     while True:

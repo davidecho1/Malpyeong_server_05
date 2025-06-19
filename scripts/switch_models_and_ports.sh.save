@@ -49,13 +49,13 @@ OLD2=${OLD_MODELS[1]}
 # -------------------------------
 #  오늘/내일 모델 가져오기
 # -------------------------------
-mapfile -t TODAY_MODELS    < <(python3 "$GET_MODELS" --today)
-mapfile -t TOMORROW_MODELS < <(python3 "$GET_MODELS" --tomorrow)
+TODAY_MODELS=($(python3 "$GET_MODELS" --today))
+TOMORROW_MODELS=($(python3 "$GET_MODELS" --tomorrow))
 
-SERVE1=${TODAY_MODELS[0]:-}
-SERVE2=${TODAY_MODELS[1]:-}
-STANDBY1=${TOMORROW_MODELS[0]:-}
-STANDBY2=${TOMORROW_MODELS[1]:-}
+SERVE1=${TODAY_MODELS[0]}
+SERVE2=${TODAY_MODELS[1]}
+STANDBY1=${TOMORROW_MODELS[0]}
+STANDBY2=${TOMORROW_MODELS[1]}
 
 # -------------------------------
 #  오늘 줄 없으면 중단
@@ -66,41 +66,42 @@ if [[ -z "$SERVE1" || -z "$SERVE2" ]]; then
 fi
 
 # -------------------------------
-# 3) A,B → standby & C,D → serving
-#    (FastAPI /models/switch 한 번 호출)
+#  기존 serving 모델 → idle
 # -------------------------------
-echo "→ A,B → standby & C,D → serving 스위칭 중..."
-curl -s -X POST "$API_BASE/models/switch"
-echo "✔ 스위칭 완료"
 
 # -------------------------------
-# 4) 내일 모델(STANDBY1,2) → standby
+#  standby → serving
 # -------------------------------
-if [[ -n "$STANDBY1" && -n "$STANDBY2" ]]; then
-  echo "→ 내일 모델 → standby 전환 중..."
-  curl -s -X POST "$API_BASE/models/standby" \
-       -H "Content-Type: application/json" \
-       -d "{\"user_id\":\"$STANDBY1\",\"gpu_id\":${OLD_GPUS[0]},\"port\":${OLD_PORTS[0]}}"
-  curl -s -X POST "$API_BASE/models/standby" \
-       -H "Content-Type: application/json" \
-       -d "{\"user_id\":\"$STANDBY2\",\"gpu_id\":${OLD_GPUS[1]},\"port\":${OLD_PORTS[1]}}"
-  echo "✔ standby 완료"
+echo "standby → serving 전환 중..."
+curl -s -X POST $API_BASE/models/serve \
+  -H "Content-Type: application/json" \
+  -d "{\"user_id\":\"$SERVE1\",\"gpu_id\":${NEW_GPUS[0]},\"port\":${NEW_PORTS[0]},\"external_port\":1111}"
+curl -s -X POST $API_BASE/models/serve \
+  -H "Content-Type: application/json" \
+  -d "{\"user_id\":\"$SERVE2\",\"gpu_id\":${NEW_GPUS[1]},\"port\":${NEW_PORTS[1]},\"external_port\":2222}"
+# -------------------------------
+#  idle → standby (내일 모델)
+# -------------------------------
+if [[ -z "$STANDBY1" || -z "$STANDBY2" ]]; then
+  echo "내일 스케줄 없음. standby는 건너뜁니다."
+  echo "오늘이 마지막 평가일입니다."
 else
-  echo "→ 내일 모델이 없습니다. standby 단계 건너뜀."
+  echo "idle → standby 전환 중..."
+  curl -s -X POST $API_BASE/models/standby -H "Content-Type: application/json" -d "{\"user_id\": \"$STANDBY1\", \"gpu_id\": ${OLD_GPUS[0]}, \"port\": ${OLD_PORTS[0]}}"
+  curl -s -X POST $API_BASE/models/standby -H "Content-Type: application/json" -d "{\"user_id\": \"$STANDBY2\", \"gpu_id\": ${OLD_GPUS[1]}, \"port\": ${OLD_PORTS[1]}}"
 fi
 
 # -------------------------------
-# 5) IPTABLES NAT 룰 업데이트
+#  포트 스위칭 (iptables)
 # -------------------------------
-echo "→ 포트 매핑 갱신: 외부(1111→${NEW_PORTS[0]}, 2222→${NEW_PORTS[1]})"
-EXT1=1111; INT1=${NEW_PORTS[0]}
-EXT2=2222; INT2=${NEW_PORTS[1]}
-/usr/local/bin/update_iptables.sh "$EXT1" "$INT1" "$EXT2" "$INT2"
-echo "✔ NAT 룰 업데이트 완료"
+echo "포트 전환 중 (호스트 스크립트 호출)..."
+sudo /usr/local/bin/update_iptables.sh \
+  1111 ${NEW_PORTS[0]} \
+  2222 ${NEW_PORTS[1]}
+
 
 # -------------------------------
-# 6) 상태 저장
+#  상태 저장
 # -------------------------------
-echo "$NEW_PAIR" > "$STATE_PAIR_FILE"
-printf "%s\n%s\n" "$SERVE1" "$SERVE2" > "$STATE_MODEL_FILE"
-echo "▶ 완료: 새로운 active pair = $NEW_PAIR (서빙: $SERVE1, $SERVE2)"
+echo "$NEW_PAIR" > "$STATE_FILE"
+echo "스위칭 완료: $NEW_PAIR 쌍이 now serving (포트 1111, 2222)"
